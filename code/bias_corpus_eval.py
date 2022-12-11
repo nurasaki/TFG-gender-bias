@@ -152,6 +152,9 @@ def eval_bias_corpus(model_ref, device, eval_file, output_file, tokenizer_kwargs
 
 
     # Definim arguments 
+
+    # tokenizer_kwargs = dict(padding='longest', return_token_type_ids=False, return_tensors="pt")
+
     kwargs = dict(df = df, model=model, tokenizer=tokenizer, tokenizer_kwargs=tokenizer_kwargs, 
                   batch_size=batch_size, device=device, logger=logger)
 

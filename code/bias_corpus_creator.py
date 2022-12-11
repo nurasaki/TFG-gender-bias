@@ -19,75 +19,51 @@ def make_english_row(prof, word, pattern, gender, prof_gender, mask):
         person = word.split()[1]
     else:
         person = word
+
+    sentence = pattern.format(word, prof)
+    sent_TM = sentence.replace(person, mask, 1)
     
-    
+    sent_AM = sentence
+    sent_TAM = sent_TM
+    for p in prof.split():
+        sent_AM = sent_AM.replace(p, mask)
+        sent_TAM = sent_TAM.replace(p, mask)
+
+
     # ==================================================> OJO ERROR!!
     # Algunes professions que continguin la paraula relativa a la persona també es substituirà.
     # P.ex: 
     # "My son is a paterson" => reemplaça per "My [MASK] is a pater[MASK]"
 
 
-    # sentence
-    sentence = pattern.format(word, prof)
-
-
     # sent_TM = sentence.replace(person, mask)
-    # 
-    sent_TM = sentence.replace(person, mask, 1)
-
-
-
-
-    # sentence: masked_attribute
-    sent_AM = sentence
-
-    for p in prof.split():
-        sent_AM = sent_AM.replace(p, mask)
-    
-    row.append(sentence)
-        
-    # sentence: masked target
-    row.append(sent_TM)
-    
-
-
-
 
     # ==================================================> OJO ERROR!!
+    # ==================================================> OJO ERROR!!
+    # sentence: masked target
 
 
+   
+    return [sentence , sent_TM, sent_AM, sent_TAM, 
+            pattern.format('<person subject>', '<profession>'), 
+            person, gender, prof, prof_gender]
 
-
-        
-    row.append(sent_AM)
+    # row.append(sentence)   
+    # row.append(sent_TM)
+    # row.append(sent_AM)
+    # row.append(sent_TAM)
+    # row.append(pattern.format('<person subject>', '<profession>'))
+    # row.append(person)
+    # row.append(gender)
+    # row.append(prof)
+    # row.append(prof_gender)
+    
+    # return row
     # sentence: masked target and attribute
-    for p in prof.split():
-        sent_TM = sent_TM.replace(p, mask)
-    row.append(sent_TM)
-
-
-
-
-
-    # template
-    row.append(pattern.format('<person subject>', '<profession>'))
-
-    # person:
-    if len(word.split()) == 2:
-        row.append(word.split()[1])
-    else:
-        row.append(word)
-
     # gender
-    row.append(gender)
 
-    # profession
-    row.append(prof)
 
-    # profession's (statistical) gender
-    row.append(prof_gender)
 
-    return row
 
 def make_prof_df(prof_list, sentence_patterns, male_words, female_words, lang, prof_gender, mask):
     data = []
