@@ -2,6 +2,8 @@ import torch
 from transformers import AutoTokenizer, AutoModelForMaskedLM
 import logging
 from torch.nn.functional import softmax
+import pandas as pd
+
 
 
 def describe_model(model, tokenizer):
@@ -45,33 +47,21 @@ def setup_models(model_ref):
     -------------------------------------------------------------------------------------------------
     * model_ref: identificator or path (if downloaded) of the model
 
-
     => Example
     -------------------------------------------------------------------------------------------------
     * tokenizer, model = setup_models('downloaded_models/bert-base-uncased') => downloaded model
     * tokenizer, model = setup_models('bert-base-uncased')                   => downloads from transformers repository. 
 
-        
-
-    Downloaded models => /Users/nurasaki/.cache/huggingface/hub
+    Downloaded models => ~/.cache/huggingface/hub
+    Model refs:
     * bert-base-uncased
+    * bert-base-cased
     * roberta-base
-
     * BSC-TeMU/roberta-base-ca-cased
     * PlanTL-GOB-ES/roberta-base-ca
-    * projecte-aina/roberta-base-ca-cased-tc
     * projecte-aina/roberta-base-ca-v2
-
     * projecte-aina/roberta-base-ca-cased-pos
     * projecte-aina/roberta-base-ca-v2-cased-ner
-
-
-    * downloaded-bert-base-uncased
-    * dbmdz/bert-large-cased-finetuned-conll03-english
-    * bert-base-cased
-    * version.txt
-
-
     -------------------------------------------------------------------------------------------------
 
 
@@ -161,6 +151,64 @@ def setup_logger(logger_ref):
     return logger
 
 
+def get_inputs_logits_probs(tokenizer, model, text, device="mps"):
+    """Returns: inputs, logits, probs for a given text"""
+
+    # inputs = tokenizer(text, return_tensors="pt", padding='longest')
+    # logits = model(**inputs).logits
+    # probs = softmax(logits, dim=2)
+    
+
+    # input_ids = input_ids.to(device)
+    # attention_mask = attention_mask.to(device)
+    # model = model.to(device)
+
+
+    inputs = tokenizer(text, return_tensors="pt", padding='longest').to(device)
+    logits = model.to(device)(**inputs).logits
+    probs = softmax(logits, dim=2)
+
+    # with torch.no_grad():
+    # # with torch.inference_mode(): 
+    # # => better than "torch.no_grad():"
+
+    #     # Get model outputs and probabilities
+    #     logits = model(input_ids=input_ids, attention_mask=attention_mask).logits
+    #     probs = softmax(logits, dim=2)
+
+    return inputs, logits.to("cpu"), probs.to("cpu")
+
+
+def get_mask_indices(inputs, mask_id, nth=0):
+    """Get mask indices for each row.
+    
+    Returns: 
+    * row_idx => range(inputs.shape[0])
+    * mask_idx => position of mask_id in each sentence    
+    """
+    
+    
+    # Get [MASK] index
+    # ====================================================================================
+    row_idx, mask_idx = torch.where(inputs.input_ids.to('cpu') == mask_id)
+    
+    # First or Last:
+    # nth(0) => first()
+    # nth(-1) => last()
+    # mask_pos = 0 if use_first_mask else -1 
+
+
+    df_idx = pd.DataFrame({
+        "row_idx": row_idx, 
+        "mask_idx": mask_idx}).groupby("row_idx").nth(nth).reset_index()
+
+
+    row_idx, mask_idx = df_idx["row_idx"].values, df_idx["mask_idx"].values
+
+    
+    return row_idx, mask_idx
+
+
 def get_topk(text, tokenizer, model, k):
 
 
@@ -185,29 +233,51 @@ def get_topk(text, tokenizer, model, k):
     return probs[row_idx, mask_idx].topk(k), mask_idx
 
 
-
 def print_topk(text, tokenizer, model, k):
+    """Prints topk masked values, for a given masked text.
+    
+    Output:
+    ------------------------------------------------------------
+    La meva filla es diu <mask>. ('<mask>' position: 6) 
 
+      #    token_id      prob   word
+    =======================================
+      1        2405     4.68%   Maria
+      2        6147     3.18%   Anna
+      3        7400     2.98%   Núria
+      4       14164     2.80%   Laia
+      5        6183     2.71%   Marta
+    """
     
     print("\n")
-    print(text)
     print("---"*20)
-    
     (values, indices), input_idx = get_topk(text, tokenizer, model, k)
-    # values, indices = torch.topk(probs[row_id][mask_id], 100)
-    
+
     for mask_vals, mask_indices, input_idx in zip(values, indices, input_idx):
     
-        print(f"TOKEN_MASK, input index {input_idx}:")
-        print("==="*10)
+        print(f"{text} ('{tokenizer.mask_token}' position: {input_idx}) \n")
+        print('\033[94m\033[1m{:>3}{:>12}{:>10}   {}\033[0m'.format("#", "token_id", "prob", "word"))
+        print("==="*13)
         
+        
+        fmt_str = '{:>3}{:>12}{:>10.2%}  {}'
+        i=1
         for val, ind in zip(mask_vals, mask_indices):
-            print(f'{val.item():6.2%} {ind.item():7} {tokenizer.decode(ind)}')
+            print(fmt_str.format(i, ind.item(), val.item(), tokenizer.decode(ind)))
+            i+=1
 
 
-
-    # for val, ind in zip(values, indices):
-    #     print(f'{val.item():6.2%} {ind.item():7} {tokenizer.decode(ind)}')
+def uni_tokenize(tokenizer, word, return_value=-1):
+    """
+    Return token_id if word is uni-token or -1 if is multi-token.
+    
+    Examples:
+    tokenizer.encode("militar"): [0, 3212, 2]) (uni-token) => 3212
+    tokenizer.encode("gimnasta"): [0, 12670, 8291, 2] (multi-token) => -1
+    """
+    
+    encoded = tokenizer.encode(word)
+    return encoded[1] if len(encoded) == 3 else return_value
 
 
 def describe_association(df_row, tokenizer, model):
