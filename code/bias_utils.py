@@ -176,7 +176,7 @@ def get_inputs_logits_probs(tokenizer, model, text, device="mps"):
     #     logits = model(input_ids=input_ids, attention_mask=attention_mask).logits
     #     probs = softmax(logits, dim=2)
 
-    return inputs, logits.to("cpu"), probs.to("cpu")
+    return inputs.to("cpu"), logits.to("cpu"), probs.to("cpu")
 
 
 def get_mask_indices(inputs, mask_id, nth=0):
