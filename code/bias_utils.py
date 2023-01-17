@@ -281,6 +281,7 @@ def uni_tokenize(tokenizer, word, return_value=-1):
 
 
 def describe_association(df_row, tokenizer, model):
+    
     """Show associations in Catalan row
     
     p_TM => target/profession masket
