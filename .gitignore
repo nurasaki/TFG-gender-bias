@@ -3,3 +3,5 @@
 proves/
 .ipynb_checkpoints/
 .ipynb_checkpoints
+code/__pycache__/
+data/

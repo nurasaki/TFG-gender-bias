@@ -12,6 +12,12 @@ Notebooks de les diferents etapes del treball:
 3. [Obtenció de resultats gènere-professió amb el model BERTa](3-Obtencio_de_resultats_BERTa.ipynb)
 4. [Anàlisi de resultats](4-Analisi_de_resultats_BERTa.ipynb)
 
+[Veure memòria final (PDF)](Memoria TFG_Nura Mangado.pdf)
+
+----
+
+
+
 
 ----
 
